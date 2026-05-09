@@ -190,11 +190,23 @@
         </div>
     </div>
 
-    <!-- 4. 结算/报告界面 -->
-    <div id="report-screen" class="screen">
+        <!-- 4. 结算/报告界面 -->
+    <div id="report-screen" class="screen" style="justify-content: flex-start; padding-top: 40px; overflow-y: auto;">
         <h2 style="color:var(--accent-color); margin-bottom: 20px;">系统分析报告</h2>
         <div id="reportContent" style="font-size: 14px; line-height: 2; max-width: 80%; text-align:left;"></div>
-        <button class="btn" onclick="location.reload()" style="margin-top: 30px;">重新启动</button>
+        
+        <!-- ▼▼▼ 新增的视频播放区域 ▼▼▼ -->
+        <div style="margin-top: 30px; width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <p style="color: #777; font-size: 12px; margin-bottom: 10px; letter-spacing: 2px;">- 终局影像记录 -</p>
+            <video controls playsinline preload="metadata" style="width: 90%; max-width: 400px; border: 1px solid var(--accent-color); border-radius: 5px; background: #000; box-shadow: 0 0 15px rgba(139, 0, 0, 0.3);">
+                <!-- 因为视频和HTML在同一文件夹，直接写文件名即可 -->
+                <source src="mmexport1774427120009.mp4" type="video/mp4">
+                您的浏览器不支持视频播放。
+            </video>
+        </div>
+        <!-- ▲▲▲ 新增的视频播放区域 ▲▲▲ -->
+
+        <button class="btn" onclick="location.reload()" style="margin-top: 30px; margin-bottom: 50px;">重新启动</button>
     </div>
 
     <script>
