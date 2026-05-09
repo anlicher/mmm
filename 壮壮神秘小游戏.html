@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>你好喵⌯>ᴗo⌯ .ᐟ.ᐟ</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-color: #e0e0e0;
+            --accent-color: #8b0000;
+            --ui-bg: rgba(20, 20, 20, 0.8);
+        }
+
+        /* 添加了 -webkit-tap-highlight-color: transparent; 去除手机端点击的蓝色方块 */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent; 
+            outline: none;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            transition: filter 0.2s, background-color 0.2s;
+        }
+
+        /* 电子雪花/微恐特效 */
+        .noise {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+            opacity: 0; pointer-events: none; z-index: 999;
+            transition: opacity 0.1s;
+        }
+        body.jumpscare .noise { opacity: 0.15; }
+        body.jumpscare { filter: contrast(150%) saturate(0) invert(10%); }
+        body.jumpscare-red { filter: drop-shadow(0 0 10px red); background-color: #1a0000; }
+
+        /* 界面通用 */
+        .screen {
+            display: none; width: 100%; height: 100%;
+            padding: 20px; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .screen.active { display: flex; }
+
+        /* 开始界面 */
+        #start-screen {
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            animation: pulseBg 4s infinite alternate;
+        }
+        @keyframes pulseBg { 0% { background-size: 100% 100%; } 100% { background-size: 120% 120%; } }
+        
+        h1 { font-size: 24px; margin-bottom: 20px; letter-spacing: 5px; color: #fff; text-shadow: 0 0 10px #fff; }
+        .form-group { margin-bottom: 15px; width: 80%; max-width: 300px; text-align: left; }
+        .form-group label { display: block; font-size: 12px; margin-bottom: 5px; color: #aaa; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 8px; background: transparent; border: 1px solid #444;
+            color: #fff; outline: none; font-family: inherit;
+        }
+        .form-group input:focus { border-color: var(--accent-color); }
+        .btn {
+            padding: 10px 30px; background: transparent; border: 1px solid var(--text-color);
+            color: var(--text-color); cursor: pointer; font-family: inherit; margin-top: 10px;
+            transition: 0.3s;
+        }
+        .btn:hover { background: var(--text-color); color: #000; }
+
+        /* 游戏界面 */
+        #game-screen { justify-content: flex-start; position: relative; padding-top: 60px; }
+        
+        /* 状态栏 */
+        .status-bar {
+            position: absolute; top: 0; left: 0; width: 100%; padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--ui-bg); border-bottom: 1px solid #333; z-index: 10;
+        }
+        .player-info { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        .player-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid #555; }
+        
+        .fazui-info { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .fazui-avatar { width: 35px; height: 35px; border-radius: 5px; border: 1px solid var(--accent-color); object-fit: cover; }
+        
+        /* 对话/文本区 */
+        .text-area {
+            flex-grow: 1; width: 100%; max-width: 600px; margin: 0 auto;
+            display: flex; flex-direction: column; justify-content: center;
+            font-size: 16px; line-height: 1.8; letter-spacing: 1px;
+            text-shadow: 0 0 2px rgba(255,255,255,0.2); cursor: pointer;
+        }
+        .text-line { margin-bottom: 15px; opacity: 0; transform: translateY(10px); animation: fadeIn 0.5s forwards; }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+        /* 选项区 */
+        .choices-area {
+            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; display: none; flex-direction: column; gap: 10px;
+        }
+        .choice-btn {
+            background: rgba(10,10,10,0.9); border: 1px solid #444; color: #ccc;
+            padding: 12px; text-align: left; font-size: 14px; cursor: pointer; transition: 0.2s;
+        }
+        .choice-btn:hover { border-color: var(--accent-color); color: #fff; padding-left: 20px; }
+
+        /* 罚罪状态模态框 */
+        #fazui-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-content {
+            background: #111; border: 1px solid var(--accent-color); padding: 20px;
+            width: 80%; max-width: 300px; text-align: center; color: #ddd;
+        }
+        .modal-content h3 { color: var(--accent-color); margin-bottom: 15px; }
+        .modal-content p { font-size: 13px; text-align: left; margin-bottom: 10px; border-left: 2px solid #555; padding-left: 10px;}
+        .close-btn { margin-top: 15px; padding: 5px 15px; background: transparent; color: #fff; border: 1px solid #fff; cursor: pointer;}
+    </style>
+</head>
+<body>
+    <div class="noise"></div>
+
+    <!-- 1. 开始界面 -->
+    <div id="start-screen" class="screen active">
+        <h1>SYSTEM LOGIN</h1>
+        <div class="form-group">
+            <label>上传头像 (可选)</label>
+            <input type="file" id="avatarInput" accept="image/*">
+        </div>
+        <div class="form-group">
+            <label>游戏 ID</label>
+            <input type="text" id="playerName" placeholder="输入你的ID" value="Player1">
+        </div>
+        <div class="form-group">
+            <label>年龄</label>
+            <input type="number" id="playerAge" placeholder="例如: 20" value="20">
+        </div>
+        <div class="form-group">
+            <label>性别</label>
+            <select id="playerGender">
+                <option value="男">男</option>
+                <option value="女">女</option>
+                <option value="其他">其他</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>发色</label>
+            <input type="text" id="playerHairColor" placeholder="例如: 黑色" value="黑色">
+        </div>
+        <button class="btn" onclick="startGame()">LINK START</button>
+    </div>
+
+    <!-- 2. 游戏界面 -->
+    <div id="game-screen" class="screen">
+        <div class="status-bar">
+            <div class="player-info">
+                <img id="uiPlayerAvatar" class="player-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'><rect width='30' height='30' fill='%23333'/></svg>">
+                <span id="uiPlayerName">ID</span>
+            </div>
+            <div class="fazui-info" onclick="openFazuiModal()">
+                <span style="font-size:12px; color:#aaa;">[队友] 罚罪</span>
+                <img id="uiFazuiAvatar" class="fazui-avatar" src="">
+            </div>
+        </div>
+        
+        <div class="text-area" id="textArea" onclick="nextLine()">
+            <!-- 文本将在这里生成 -->
+        </div>
+
+        <div class="choices-area" id="choicesArea">
+            <!-- 选项将在这里生成 -->
+        </div>
+    </div>
+
+    <!-- 3. 罚罪状态模态框 -->
+    <div id="fazui-modal">
+        <div class="modal-content">
+            <h3>罚罪 当前状态</h3>
+            <p><strong>心情:</strong> <span id="fzMood">平静。</span></p>
+            <p><strong>动作:</strong> <span id="fzAction">盯着屏幕，手指搭在鼠标上。</span></p>
+            <p><strong>内心所想:</strong> <span id="fzThought">要保护好你。</span></p>
+            <button class="close-btn" onclick="closeFazuiModal()">关闭</button>
+        </div>
+    </div>
+
+    <!-- 4. 结算/报告界面 -->
+    <div id="report-screen" class="screen">
+        <h2 style="color:var(--accent-color); margin-bottom: 20px;">系统分析报告</h2>
+        <div id="reportContent" style="font-size: 14px; line-height: 2; max-width: 80%; text-align:left;"></div>
+        <button class="btn" onclick="location.reload()" style="margin-top: 30px;">重新启动</button>
+    </div>
+
+    <script>
+        // === 你的自定义设置区 ===
+        // 在这里填入你准备好的罚罪头像图片链接
+        const FAZUI_AVATAR_URL = "https://i.postimg.cc/pLtDBHK1/mmexport1777656051442.jpg"; // 占位图，请替换
+        
+        // 玩家数据
+        let player = { name: "", age: "", gender: "", hairColor: "", avatar: "", choice: "" };
+        let currentLine = 0;
+        let isWaitingChoice = false;
+
+        // 剧本数据
+        const story = [
+            { text: "你的房间里只剩下屏幕的冷光。" },
+            { text: "十一月的夜晚，暖气片发出低沉的嗡鸣，窗外什么声音都没有。耳机扣在头上，隔绝了整个世界，只剩游戏里废弃工厂区的风声、远处零星的枪响，以及他的呼吸。" },
+            { text: "你的队友\"罚罪\"，在麦里安静地呼吸着。那种呼吸太均匀了，像某种恒温动物在黑暗中蛰伏时的状态。" },
+            { text: "你已经和他打了三个月的游戏。三个月里你注意到一件事：他从来没有过急促的喘息。" },
+            { text: "不正常。", effect: "jumpscare" },
+            { text: "你很早就有这个结论了。" },
+            { text: "屏幕上，他的角色蹲在废弃建筑的阴影里。对面的通道有人影闪动。你们刚刚遭了埋伏，队伍被打散，只剩你和他。准星一闪。" },
+            { text: "“砰。”", effect: "jumpscare-red" },
+            { text: "对面探头的人应声倒地。他的角色甚至没有从阴影里挪动半步，枪口冒着青烟。" },
+            { text: "“西南方向，还有两个。”他的声音从耳机里传来。很低，很近。近到像是贴着你的耳廓在说话。" },
+            { text: `“乖一点。待在掩体后面别动，{playerName}。”` },
+            { text: "鼠标点击的声音清脆而有节奏。他的角色开始向侧翼迂回。" },
+            { text: "“交给我。”他说，“我会把他们处理得干干净净。”" },
+            { text: "停顿。“谁也不能碰你。”" },
+            { text: "你靠在电脑椅背上。一个正常人说到“处理”这个词的时候，不会用这种像在讨论今晚吃什么一样随便的语气。但他说的是“处理人”。" },
+            { text: "屏幕左下角跳出击杀提示。两条红色的kill信息安静地滚过聊天框。然后他的角色重新出现在你的视野范围内，身上没有掉一滴血。" },
+            { text: "“好了。”他说，语气里带着奇怪的满足感，“干净了。”" },
+            { text: "“你没有动？很好。听话的孩子。”" },
+            { text: "你的后颈有些发麻。不是恐惧。一种本该让你觉得不舒服、但你却没有觉得不舒服的奇怪感觉。你甚至觉得有点兴奋。" },
+            { text: "三个月了。你一直在想这家伙到底是什么人。他打游戏的方式很奇怪，永远先清你周围的人再清远处的人，永远把你护在后面。" },
+            { text: "因为你不想他停下来。你觉得自己对“正常”这个词的定义，和大多数人不太一样。" },
+            { text: "“或者，”耳机里又传来他的声音。屏幕上他的角色已经绕到了你身旁，准星从通道口收回，转向你。只有一瞬间。然后他移开了。" },
+            { text: "“你想自己动手？”他问，“前面还有人，下一波。你想怎么玩，我都陪你。”" },
+            { text: "他的角色卡在你右侧视野死角里，背对着你，把整个前方的危险都挡在身前。新一波正在靠近。怎么办？", isChoice: true }
+        ];
+
+        // 选项分支
+        const choices = [
+            { id: "A", text: "【躲着看戏】“好啊，交给你了。”", desc: "乖乖躲在掩体后面看他杀人。" },
+            { id: "B", text: "【猛攻】“我才不躲。”", desc: "直接探出头，不管三七二十一对着通道扫射。" },
+            { id: "C", text: "【偷偷绕后阴人】“我绕到他们后面去。”", desc: "悄悄摸出去，看他发现你不在掩体后什么反应。" },
+            { id: "D", text: "【哲学提问】“你为什么总是对我这么好？”", desc: "在这个紧张关头突然发问。" }
+        ];
+
+        // 初始化
+        document.getElementById('uiFazuiAvatar').src = FAZUI_AVATAR_URL;
+        
+        // 头像上传预览
+        document.getElementById('avatarInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) { player.avatar = e.target.result; }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function startGame() {
+            player.name = document.getElementById('playerName').value || "Player";
+            player.age = document.getElementById('playerAge').value || "20";
+            player.gender = document.getElementById('playerGender').value;
+            player.hairColor = document.getElementById('playerHairColor').value || "黑色";
+            
+            document.getElementById('uiPlayerName').innerText = player.name + ` (${player.gender}, ${player.hairColor})`;
+            if(player.avatar) document.getElementById('uiPlayerAvatar').src = player.avatar;
+
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            
+            renderLine();
+        }
+
+        function renderLine() {
+            if(isWaitingChoice) return;
+            if(currentLine >= story.length) return;
+
+            const lineData = story[currentLine];
+            const textArea = document.getElementById('textArea');
+            
+            // 清理特效
+            document.body.className = '';
+
+            // 替换玩家名字
+            let text = lineData.text.replace('{playerName}', `<span style="color:#aaa;">${player.name}</span>`);
+
+            // 特效处理
+            if(lineData.effect) {
+                document.body.classList.add(lineData.effect);
+                setTimeout(() => document.body.className = '', 300); // 闪烁后恢复，不一直闪
+            }
+
+            // 清空旧文本，只显示当前段落，制造疏离感
+            textArea.innerHTML = `<div class="text-line">${text}</div>`;
+
+            if(lineData.isChoice) {
+                isWaitingChoice = true;
+                showChoices();
+            }
+
+            currentLine++;
+        }
+
+        function nextLine() {
+            if(!isWaitingChoice) renderLine();
+        }
+
+        function showChoices() {
+            const choicesArea = document.getElementById('choicesArea');
+            choicesArea.innerHTML = '';
+            choices.forEach(c => {
+                const btn = document.createElement('div');
+                btn.className = 'choice-btn';
+                btn.innerHTML = `<strong>${c.text}</strong><br><span style="font-size:11px;color:#777;">${c.desc}</span>`;
+                btn.onclick = (e) => {
+                    e.stopPropagation(); // 阻止触发textArea的点击
+                    makeChoice(c.id);
+                };
+                choicesArea.appendChild(btn);
+            });
+            choicesArea.style.display = 'flex';
+        }
+
+        function makeChoice(choiceId) {
+            player.choice = choiceId;
+            document.getElementById('choicesArea').style.display = 'none';
+            isWaitingChoice = false;
+            
+            // 触发API更新罚罪状态 (模拟)
+            fetchFazuiStateAPI(choiceId);
+
+            // 显示一段过渡文本，然后进入结算
+            const textArea = document.getElementById('textArea');
+            textArea.innerHTML = `<div class="text-line">你做出了选择... <br><br>(体验版剧情到此结束，点击生成分析报告)</div>`;
+            
+            textArea.onclick = showReport;
+        }
+
+        function showReport() {
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('report-screen').classList.add('active');
+
+            let behavior = "";
+            if(player.choice === "A") behavior = "享受被保护，有着旁观者的冷漠与顺从";
+            if(player.choice === "B") behavior = "鲁莽且富有攻击性，不按常理出牌";
+            if(player.choice === "C") behavior = "充满试探欲，喜欢在危险边缘游走测试底线";
+            if(player.choice === "D") behavior = "脑回路清奇，对本质的好奇心战胜了生存本能";
+
+            const report = `
+                玩家ID: [${player.name}] <br>
+                基础特征: ${player.age}岁, ${player.gender}, ${player.hairColor}。<br>
+                <br>
+                <strong>系统分析总结：</strong><br>
+                根据刚才的反应测试，你是一个${behavior}的<strong>我先不给你剧透</strong>。<br>
+                你对危险（即罚罪）缺乏正常的敬畏心，反而产生了兴奋感。这种特质在布偶星人眼中，被判定为“极度危险但极其可爱，必须严密看护”。
+            `;
+            document.getElementById('reportContent').innerHTML = report;
+        }
+
+        // ================= API 模拟区 =================
+        function openFazuiModal() {
+            document.getElementById('fazui-modal').style.display = 'flex';
+        }
+        function closeFazuiModal() {
+            document.getElementById('fazui-modal').style.display = 'none';
+        }
+
+        // 这里预留了 fetch 请求，你可以将其替换为你真实的 AI 接口
+        async function fetchFazuiStateAPI(playerAction) {
+            console.log(`向后端发送玩家行为: ${playerAction}，请求生成罚罪新状态...`);
+            
+            // 模拟 AI 返回的数据差分
+            let mockData = { mood: "", action: "", thought: "" };
+            if(playerAction === "A") mockData = { mood: "愉悦、放松", action: "嘴角微微上扬，轻巧地移动鼠标", thought: "真乖，我就喜欢看你躲在我身后的样子。" };
+            if(playerAction === "B") mockData = { mood: "错愕、随后是无奈", action: "迅速拉动视角跟上你的角色", thought: "啧，小仓鼠怎么突然冲出去了，得赶紧把周围清干净。" };
+            if(playerAction === "C") mockData = { mood: "警觉、微愠", action: "停顿了半秒，敲击键盘的速度变重", thought: "跑出我的视线了……不听话，得马上找到你。" };
+            if(playerAction === "D") mockData = { mood: "呆滞、心跳漏了一拍", action: "不小心空了一枪", thought: "……她/他发现了什么吗？外星人的身份要暴露了？" };
+
+            // 更新弹窗内容
+            document.getElementById('fzMood').innerText = mockData.mood;
+            document.getElementById('fzAction').innerText = mockData.action;
+            document.getElementById('fzThought').innerText = mockData.thought;
+        }
+    </script>
+</body>
+</html>
